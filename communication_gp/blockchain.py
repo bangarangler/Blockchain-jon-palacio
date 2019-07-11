@@ -16,7 +16,25 @@ class Blockchain(object):
         self.current_transactions = []
         self.nodes = set()
 
-        self.new_block(previous_hash=1, proof=100)
+        self.create_genesis_block()
+
+    def create_genesis_block(self):
+        '''
+        Create the genesis block and add it to the chain
+        The genesis block is the anchor of the chain. It must be identical
+        for all nodes, or consensus will fail
+        It is normally hardcoded
+        '''
+        block = {
+            "index": 1,
+            "timestamp": 0,
+            "transactions": [],
+            "proof": 99,
+            "previous_hash": 1
+        }
+
+        self.chain.append(block)
+
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -175,6 +193,22 @@ class Blockchain(object):
 
         return False
 
+    def broadcast_new_block(self, block):
+        '''
+        alert neighbors in list of nodes that a new block has been mined
+        paramater is block expected type is block. and it's the block that
+        has been mined and added to the chain.
+        '''
+
+        post_data = {"block": block}
+
+        for node in self.nodes:
+            r = request.post(f"http://{node}/block/new", json=post_data)
+
+            if r.status_code != 200:
+                # TODO: Error handling
+                pass
+
 
 # Instantiate our Node
 app = Flask(__name__)
@@ -279,6 +313,30 @@ def register_nodes():
         'total_nodes': list(blockchain.nodes),
     }
     return jsonify(response), 201
+
+@app.route('/block/new', methods=['POST'])
+def new_block():
+    values = request.get_json()
+
+    # Check that the required fields are in the POST'ed data
+    required = ['block']
+    if not all(k in values for k in required):
+        return 'Missing Values', 400
+
+    # TODO: validate that sender is actually an approved peer node
+
+    # validate the block
+
+    # make sure that index is exactly one greater than last chain
+    new_block = values("block")
+    last_block = blockchain.last_block
+
+    if new_block['index'] == last_block["index"] + 1:
+        # make sure that the block's last hash matched our hash of our last block
+        if new_block["previous_hash"] == blockchain.hash(last_block):
+            # validate the proof in the new block
+            if blockchain.valid_proof(last_block["proof"], new_block["proof"]):
+                # The block is good! add it to the chain
 
 
 @app.route('/nodes/resolve', methods=['GET'])
