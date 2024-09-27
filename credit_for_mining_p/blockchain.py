@@ -214,7 +214,7 @@ class Blockchain(object):
     def broadcast_new_block(self, block):
         """
         Alert neigbors in list of nodes that a new block has been mined
-        :param block: <Block> the block that has been mined and added to the 
+        :param block: <Block> the block that has been mined and added to the
         chain
         """
         neighbours = self.nodes
@@ -233,6 +233,7 @@ class Blockchain(object):
 
 # Instantiate our Node
 app = Flask(__name__)
+app.debug = True
 
 # Generate a globally unique address for this node
 node_identifier = str(uuid4()).replace('-', '')
@@ -249,13 +250,15 @@ def mine():
 
     values = request.get_json()
     submitted_proof = values.get('proof')
+    client_ID = values.get("client_ID")
+    print(f" client-ID: {client_ID}")
 
     if blockchain.valid_proof(last_proof, submitted_proof):
         # We must receive a reward for finding the proof.
         # The sender is "0" to signify that this node has mine a new coin
         blockchain.new_transaction(
-            sender="0",
-            recipient=node_identifier,
+            sender=node_identifier,
+            recipient=client_ID,
             amount=1,
         )
 
